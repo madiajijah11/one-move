@@ -44,3 +44,32 @@ do $$ begin
       for update using (auth.uid()::text = user_id) with check (auth.uid()::text = user_id);
   end if;
 end $$;
+
+-- Weekly summaries cache table (AI summaries persisted per week)
+create table if not exists weekly_summaries (
+  user_id text not null,
+  week_start date not null,
+  summary text,
+  encouragement text,
+  total_games integer,
+  created_at timestamptz default now(),
+  primary key(user_id, week_start)
+);
+
+-- Add column if upgrading from earlier version without total_games
+alter table weekly_summaries add column if not exists total_games integer;
+
+alter table weekly_summaries enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename='weekly_summaries' and policyname='Select own weekly summaries'
+  ) then
+    create policy "Select own weekly summaries" on weekly_summaries for select using (auth.uid()::text = user_id);
+  end if;
+  if not exists (
+    select 1 from pg_policies where tablename='weekly_summaries' and policyname='Upsert own weekly summaries'
+  ) then
+    create policy "Upsert own weekly summaries" on weekly_summaries for all using (auth.uid()::text = user_id) with check (auth.uid()::text = user_id);
+  end if;
+end $$;

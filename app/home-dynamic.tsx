@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { earnedBadges } from "@/lib/badges";
+import { useToast } from "@/components/toast-provider";
 
 interface TodayLog {
   id: string;
@@ -23,6 +25,8 @@ interface WeeklyStats {
     bestScore: number | null;
     reflectionsUsed: number;
     gamesByType: Record<string, { count: number; avgScore: number | null }>;
+    averageDurationMs?: number | null;
+    averageMoves?: number | null;
   };
   ai: { summary: string; encouragement: string } | null;
   hasAI: boolean;
@@ -45,6 +49,11 @@ export default function HomeDynamic() {
   const [error, setError] = useState<string | null>(null);
   const [weekly, setWeekly] = useState<WeeklyStats | null>(null);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [streak, setStreak] = useState<number | null>(null);
+  const [editingReflection, setEditingReflection] = useState(false);
+  const [reflectionDraft, setReflectionDraft] = useState("");
+  const [savingReflection, setSavingReflection] = useState(false);
+  const { push } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -54,25 +63,27 @@ export default function HomeDynamic() {
         const res = await fetch("/api/today");
         if (res.status === 401) {
           setLoading(false);
-          return;
+          return; // unauthenticated
         }
         const data = await res.json();
         if (active) setToday(data.today);
-        // After we know today's status, we can fetch weekly summary
-        if (data.today || true) {
-          // always fetch for now; could gate by played days
-          setWeeklyLoading(true);
-          try {
-            const w = await fetch("/api/weekly-summary");
-            if (w.ok) {
-              const json = await w.json();
-              if (active) setWeekly(json);
-            }
-          } catch (e: any) {
-            // ignore
-          } finally {
-            if (active) setWeeklyLoading(false);
+        try {
+          const h = await fetch("/api/history?days=30");
+          if (h.ok) {
+            const hj = await h.json();
+            if (active) setStreak(hj.streak);
           }
+        } catch {}
+        setWeeklyLoading(true);
+        try {
+          const w = await fetch("/api/weekly-summary");
+          if (w.ok) {
+            const json = await w.json();
+            if (active) setWeekly(json);
+          }
+        } catch {
+        } finally {
+          if (active) setWeeklyLoading(false);
         }
       } catch (e: any) {
         if (active) setError(e.message);
@@ -132,7 +143,7 @@ export default function HomeDynamic() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <p className="text-muted-foreground">
-                You already finished today’s{" "}
+                You already finished today’s {""}
                 <span className="font-medium">{today.game_type}</span>.
               </p>
               <div className="text-sm flex gap-4">
@@ -141,18 +152,94 @@ export default function HomeDynamic() {
                   {today.score ?? "-"}
                 </div>
               </div>
-              {today.reflection && (
+              {today.reflection && !editingReflection && (
                 <div>
                   <span className="font-medium">Reflection:</span>
                   <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
                     {today.reflection}
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => {
+                      setEditingReflection(true);
+                      setReflectionDraft(today.reflection || "");
+                    }}
+                  >
+                    Edit
+                  </Button>
                 </div>
               )}
-              {!today.reflection && (
+              {!today.reflection && !editingReflection && (
                 <p className="italic text-muted-foreground">
                   (No reflection saved)
                 </p>
+              )}
+              {editingReflection && (
+                <div className="space-y-2 w-full">
+                  <textarea
+                    className="w-full rounded border bg-background p-2 text-xs focus:outline-none focus:ring"
+                    rows={3}
+                    value={reflectionDraft}
+                    placeholder="What was tricky? What pattern did you notice?"
+                    onChange={(e) => setReflectionDraft(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={!reflectionDraft.trim() || savingReflection}
+                      onClick={async () => {
+                        const date = new Date().toISOString().slice(0, 10);
+                        try {
+                          setSavingReflection(true);
+                          const res = await fetch("/api/reflection", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              date,
+                              reflection: reflectionDraft,
+                            }),
+                          });
+                          if (!res.ok) throw new Error("Save failed");
+                          setToday((t) =>
+                            t ? { ...t, reflection: reflectionDraft } : t
+                          );
+                          setEditingReflection(false);
+                          push({
+                            title: "Reflection saved",
+                            description: "Nice insight logged.",
+                            variant: "success",
+                          });
+                          try {
+                            const w = await fetch("/api/weekly-summary");
+                            if (w.ok) {
+                              const json = await w.json();
+                              setWeekly(json);
+                            }
+                          } catch {}
+                        } catch (e: any) {
+                          push({
+                            title: "Could not save",
+                            description: e.message || "Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setSavingReflection(false);
+                        }
+                      }}
+                    >
+                      {savingReflection ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingReflection(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               )}
               <div className="flex gap-2">
                 <Button variant="outline" asChild>
@@ -190,7 +277,30 @@ export default function HomeDynamic() {
                   label="Reflections"
                   value={weekly.stats.reflectionsUsed}
                 />
+                {weekly.stats.averageDurationMs != null && (
+                  <Metric
+                    label="Avg ms"
+                    value={weekly.stats.averageDurationMs}
+                  />
+                )}
+                {weekly.stats.averageMoves != null && (
+                  <Metric label="AvgMv" value={weekly.stats.averageMoves} />
+                )}
+                {streak != null && <Metric label="Streak" value={streak} />}
               </div>
+              {streak != null && (
+                <div className="flex flex-wrap gap-1">
+                  {earnedBadges(streak).map((b) => (
+                    <span
+                      key={b.id}
+                      className="px-2 py-0.5 rounded border bg-muted/50 text-[10px] font-medium"
+                      title={`Unlocked at ${b.threshold} days`}
+                    >
+                      {b.label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {weekly.ai && (
                 <div className="space-y-2">
                   <p className="text-muted-foreground leading-snug whitespace-pre-line text-[11px]">

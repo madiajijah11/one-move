@@ -5,6 +5,8 @@ export interface GameLogRow {
   game_type: string;
   score: number | null;
   reflection: string | null;
+  duration_ms?: number | null;
+  moves?: number | null;
 }
 
 export interface WeeklyStats {
@@ -17,6 +19,8 @@ export interface WeeklyStats {
   bestScore: number | null;
   reflectionsUsed: number;
   gamesByType: Record<string, { count: number; avgScore: number | null }>;
+  averageDurationMs?: number | null;
+  averageMoves?: number | null;
 }
 
 export function computeWeeklyStats(
@@ -31,6 +35,10 @@ export function computeWeeklyStats(
   let scoreCount = 0;
   let bestScore: number | null = null;
   let reflectionsUsed = 0;
+  let durationSum = 0;
+  let durationCount = 0;
+  let movesSum = 0;
+  let movesCount = 0;
   rows.forEach((r) => {
     if (!byDate.has(r.date)) byDate.set(r.date, []);
     byDate.get(r.date)!.push(r);
@@ -42,6 +50,14 @@ export function computeWeeklyStats(
       if (bestScore == null || r.score > bestScore) bestScore = r.score;
     }
     if (r.reflection && r.reflection.trim().length > 0) reflectionsUsed++;
+    if (typeof r.duration_ms === "number") {
+      durationSum += r.duration_ms;
+      durationCount++;
+    }
+    if (typeof r.moves === "number") {
+      movesSum += r.moves;
+      movesCount++;
+    }
   });
   const gamesByType: WeeklyStats["gamesByType"] = {};
   byType.forEach((list, key) => {
@@ -68,6 +84,10 @@ export function computeWeeklyStats(
     bestScore,
     reflectionsUsed,
     gamesByType,
+    averageDurationMs: durationCount
+      ? Math.round(durationSum / durationCount)
+      : null,
+    averageMoves: movesCount ? Math.round(movesSum / movesCount) : null,
   };
 }
 
@@ -92,6 +112,9 @@ Average score: ${stats.averageScore ?? "n/a"}, best score: ${
     stats.bestScore ?? "n/a"
   }.
 Reflections written: ${stats.reflectionsUsed}.
+Average duration(ms): ${stats.averageDurationMs ?? "n/a"}, average moves: ${
+    stats.averageMoves ?? "n/a"
+  }.
 Per game type: ${Object.entries(stats.gamesByType)
     .map(
       ([k, v]) =>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { guardLogGamePayload } from "@/lib/validation";
 
 // Optional: declare dynamic to avoid caching
 export const dynamic = "force-dynamic";
@@ -13,46 +14,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    let body: any;
+    let raw: unknown;
     try {
-      body = await req.json();
+      raw = await req.json();
     } catch {
       return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
     }
-
-    const gameType = String(body.gameType || "").trim();
-    const score = body.score == null ? null : Number(body.score);
-    const duration_ms =
-      body.duration_ms == null ? null : Number(body.duration_ms);
-    const moves = body.moves == null ? null : Number(body.moves);
-    const reflectionRaw =
-      typeof body.reflection === "string" ? body.reflection : "";
-    const reflection = reflectionRaw.trim().slice(0, 1000) || null;
-
-    if (!gameType) {
-      return NextResponse.json({ error: "gameType required" }, { status: 400 });
-    }
-    if (score !== null && (Number.isNaN(score) || score < 0)) {
-      return NextResponse.json(
-        { error: "score must be a positive number" },
-        { status: 400 }
-      );
-    }
-    if (
-      duration_ms !== null &&
-      (Number.isNaN(duration_ms) || duration_ms < 0)
-    ) {
-      return NextResponse.json(
-        { error: "duration_ms must be a positive number" },
-        { status: 400 }
-      );
-    }
-    if (moves !== null && (Number.isNaN(moves) || moves < 0)) {
-      return NextResponse.json(
-        { error: "moves must be a positive number" },
-        { status: 400 }
-      );
-    }
+    const payload = guardLogGamePayload(raw);
+    if (!payload)
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+    const { gameType, score, duration_ms, moves, reflection } = payload;
 
     // Use service role if available (server-side only) to avoid needing a Supabase auth session mapping Clerk user.
     const hasServiceKey =

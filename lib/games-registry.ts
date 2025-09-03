@@ -1,4 +1,4 @@
-export type GameId = "match-pairs" | "number-maze";
+export type GameId = "match-pairs" | "number-maze" | "color-switch";
 
 export interface GameDefinition {
   id: GameId;
@@ -31,6 +31,17 @@ export const games: GameDefinition[] = [
     skill: "logic",
     enabled: true,
     hint: "Move from start to finish stepping only on even cells.",
+  },
+  {
+    id: "color-switch",
+    name: "Color Switch",
+    component: () =>
+      import("@/components/games/ColorSwitchGame").then((m) => ({
+        default: m.ColorSwitchGame,
+      })),
+    skill: "focus",
+    enabled: true,
+    hint: "Tap the meaning of the word, not the ink color. 10 rounds.",
   },
 ];
 
