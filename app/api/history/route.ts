@@ -65,5 +65,8 @@ export async function GET(req: NextRequest) {
     else break;
   }
 
-  return NextResponse.json({ days: daysArr, streak });
+  return NextResponse.json(
+    { days: daysArr, streak },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
 }

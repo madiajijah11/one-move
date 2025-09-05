@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { earnedBadges } from "@/lib/badges";
 import { useToast } from "@/components/toast-provider";
@@ -44,6 +44,7 @@ function Metric({ label, value }: { label: string; value: any }) {
 }
 
 export default function HomeDynamic() {
+  const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(true);
   const [today, setToday] = useState<TodayLog | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,58 +56,73 @@ export default function HomeDynamic() {
   const [savingReflection, setSavingReflection] = useState(false);
   const { push } = useToast();
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/today");
-        if (res.status === 401) {
-          setLoading(false);
-          return; // unauthenticated
-        }
-        const data = await res.json();
-        if (active) setToday(data.today);
-        try {
-          const h = await fetch("/api/history?days=30");
-          if (h.ok) {
-            const hj = await h.json();
-            if (active) setStreak(hj.streak);
-          }
-        } catch {}
-        setWeeklyLoading(true);
-        try {
-          const w = await fetch("/api/weekly-summary");
-          if (w.ok) {
-            const json = await w.json();
-            if (active) setWeekly(json);
-          }
-        } catch {
-        } finally {
-          if (active) setWeeklyLoading(false);
-        }
-      } catch (e: any) {
-        if (active) setError(e.message);
-      } finally {
-        if (active) setLoading(false);
+  const loadAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/today", { cache: "no-store" });
+      if (res.status === 401) {
+        // Not signed in yet; leave today null and stop (will refetch on sign-in)
+        setLoading(false);
+        return;
       }
+      const data = await res.json();
+      setToday(data.today);
+      try {
+        const h = await fetch("/api/history?days=30", { cache: "no-store" });
+        if (h.ok) {
+          const hj = await h.json();
+          setStreak(hj.streak);
+        }
+      } catch {}
+      setWeeklyLoading(true);
+      try {
+        const w = await fetch("/api/weekly-summary", { cache: "no-store" });
+        if (w.ok) {
+          const json = await w.json();
+          setWeekly(json);
+        }
+      } catch {
+      } finally {
+        setWeeklyLoading(false);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      active = false;
-    };
   }, []);
 
+  // Initial + auth state change refetch
+  useEffect(() => {
+    if (isSignedIn) {
+      loadAll();
+    } else {
+      // reset when logged out so UI accurate after next login
+      setToday(null);
+      setStreak(null);
+      setWeekly(null);
+    }
+  }, [isSignedIn, loadAll]);
+
+  // Listen for game completion events (from play page) to update dashboard
+  useEffect(() => {
+    function onLogged() {
+      loadAll();
+    }
+    window.addEventListener("game-logged", onLogged as any);
+    return () => window.removeEventListener("game-logged", onLogged as any);
+  }, [loadAll]);
+
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-8">
+    <div className="max-w-xl mx-auto px-4 py-6 space-y-8 sm:px-6">
       <header className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">🧠 OneMove</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-2xl sm:text-3xl font-bold">🧠 OneMove</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           One small puzzle a day. Grow your streak.
         </p>
       </header>
       <SignedOut>
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Welcome</CardTitle>
           </CardHeader>
@@ -124,7 +140,7 @@ export default function HomeDynamic() {
         )}
         {error && <div className="text-sm text-destructive">{error}</div>}
         {!loading && !today && (
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Today’s Puzzle Ready</CardTitle>
             </CardHeader>
@@ -137,7 +153,7 @@ export default function HomeDynamic() {
           </Card>
         )}
         {!loading && today && (
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Nice work! ✅</CardTitle>
             </CardHeader>

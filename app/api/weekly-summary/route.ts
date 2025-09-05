@@ -73,7 +73,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (cached) {
-    return NextResponse.json({ stats, ai: cached, hasAI: true, cached: true });
+    return NextResponse.json(
+      { stats, ai: cached, hasAI: true, cached: true },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   }
 
   // Build prompt & generate AI
@@ -97,5 +100,8 @@ export async function GET(req: NextRequest) {
     console.warn("weekly_summaries upsert failed", e);
   }
 
-  return NextResponse.json({ stats, ai, hasAI: !!ai, cached: false });
+  return NextResponse.json(
+    { stats, ai, hasAI: !!ai, cached: false },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
 }

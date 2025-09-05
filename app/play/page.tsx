@@ -126,8 +126,8 @@ export default function PlayPage() {
   }, []);
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold">Today&apos;s Game</h1>
+    <div className="px-4 py-6 space-y-6 max-w-2xl mx-auto sm:px-6">
+      <h1 className="text-xl sm:text-2xl font-bold">Today&apos;s Game</h1>
       <SignedOut>
         <div className="text-sm text-muted-foreground">
           Please sign in to play.
@@ -143,14 +143,16 @@ export default function PlayPage() {
         {error && <div className="text-sm text-destructive">{error}</div>}
         {!loading && !today && (
           <div className="space-y-4">
-            <div className="p-3 rounded border bg-muted/30 text-xs flex justify-between items-center">
-              <div className="space-y-1">
-                <div className="font-medium text-sm">{gameDef.name}</div>
-                <p className="text-muted-foreground max-w-md leading-snug">
+            <div className="p-3 rounded border bg-muted/30 text-xs flex justify-between items-center gap-4">
+              <div className="space-y-1 min-w-0">
+                <div className="font-medium text-sm truncate">
+                  {gameDef.name}
+                </div>
+                <p className="text-muted-foreground max-w-md leading-snug text-[11px] sm:text-xs">
                   {gameDef.hint}
                 </p>
               </div>
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
                 {gameDef.skill}
               </span>
             </div>

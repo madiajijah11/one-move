@@ -24,5 +24,12 @@ export async function GET(_req: NextRequest) {
     .maybeSingle();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ today: data || null });
+  return NextResponse.json(
+    { today: data || null },
+    {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    }
+  );
 }
