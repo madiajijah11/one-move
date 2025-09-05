@@ -87,21 +87,19 @@ export default function PlayPage() {
 
   useEffect(() => {
     let active = true;
-    async function load() {
+    async function loadStatus() {
       try {
         setLoading(true);
         const res = await fetch("/api/today");
         if (res.status === 401) {
           setLoading(false);
-          return; // unauth, SignedOut block will handle
+          return;
         }
         const data = await res.json();
-        if (active) {
-          setToday(data.today);
-          if (data.today?.reflection) setReflectionDraft(data.today.reflection);
-        }
+        if (!active) return;
+        setToday(data.today);
+        if (data.today?.reflection) setReflectionDraft(data.today.reflection);
         if (data.today) {
-          // fetch streak only after played today
           const h = await fetch("/api/history");
           if (h.ok) {
             const hist = await h.json();
@@ -114,9 +112,16 @@ export default function PlayPage() {
         if (active) setLoading(false);
       }
     }
-    load();
+    loadStatus();
+
+    function onLogged() {
+      // After a game logs, refresh the status so UI switches to summary
+      loadStatus();
+    }
+    window.addEventListener("game-logged", onLogged as any);
     return () => {
       active = false;
+      window.removeEventListener("game-logged", onLogged as any);
     };
   }, []);
 

@@ -16,8 +16,22 @@ export async function logGameCompletion(opts: {
       moves: opts.moves,
     }),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to log game");
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* ignore */
   }
+  if (!res.ok) {
+    throw new Error(data?.error || "Failed to log game");
+  }
+  // Fire a global event so parent pages (e.g. /play) can react without prop drilling
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("game-logged", {
+        detail: { row: data?.row, gameType: opts.gameType },
+      })
+    );
+  }
+  return data?.row;
 }

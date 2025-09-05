@@ -1,4 +1,10 @@
-export type GameId = "match-pairs" | "number-maze" | "color-switch";
+export type GameId =
+  | "match-pairs"
+  | "number-maze"
+  | "color-switch"
+  | "math-speed"
+  | "reaction-tap"
+  | "sequence-memory";
 
 export interface GameDefinition {
   id: GameId;
@@ -42,6 +48,39 @@ export const games: GameDefinition[] = [
     skill: "focus",
     enabled: true,
     hint: "Tap the meaning of the word, not the ink color. 10 rounds.",
+  },
+  {
+    id: "math-speed",
+    name: "Quick Math",
+    component: () =>
+      import("@/components/games/QuickMathGame").then((m) => ({
+        default: m.QuickMathGame,
+      })),
+    skill: "math",
+    enabled: true,
+    hint: "Solve 10 fast addition/subtraction problems.",
+  },
+  {
+    id: "reaction-tap",
+    name: "Reaction Tap",
+    component: () =>
+      import("@/components/games/ReactionTapGame").then((m) => ({
+        default: m.ReactionTapGame,
+      })),
+    skill: "speed",
+    enabled: true,
+    hint: "Tap the highlighted square as fast as possible.",
+  },
+  {
+    id: "sequence-memory",
+    name: "Sequence Memory",
+    component: () =>
+      import("@/components/games/SequenceMemoryGame").then((m) => ({
+        default: m.SequenceMemoryGame,
+      })),
+    skill: "memory",
+    enabled: true,
+    hint: "Memorize and reproduce a growing emoji sequence.",
   },
 ];
 
