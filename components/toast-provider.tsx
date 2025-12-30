@@ -25,7 +25,7 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const timers = useRef<Record<string, any>>({});
+  const timers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const push = useCallback((t: Omit<ToastItem, "id">) => {
     const id = Math.random().toString(36).slice(2);

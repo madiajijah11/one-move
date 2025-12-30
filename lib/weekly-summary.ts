@@ -1,5 +1,3 @@
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-
 export interface GameLogRow {
   date: string;
   game_type: string;

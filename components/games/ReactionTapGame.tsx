@@ -2,7 +2,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Hint } from "@/components/ui/hint";
-import { Button } from "@/components/ui/button";
 import { logGameCompletion } from "@/lib/game-logging";
 
 const GRID = 9; // 3x3

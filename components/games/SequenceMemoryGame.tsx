@@ -9,7 +9,7 @@ const EMOJIS = ["🍎", "⭐", "🎲", "🧠", "⚡", "🎯", "🎵", "🪄"];
 
 export function SequenceMemoryGame() {
   const maxLen = 8;
-  const [sequence, setSequence] = useState<string[]>(() =>
+  const [sequence] = useState<string[]>(() =>
     Array.from(
       { length: maxLen },
       () => EMOJIS[Math.floor(Math.random() * EMOJIS.length)]
@@ -91,7 +91,6 @@ export function SequenceMemoryGame() {
         <div className="flex justify-center gap-2 text-3xl">
           {Array.from({ length: visibleCount }).map((_, i) => {
             const val = sequence[i];
-            const hidden = !showPhase && i >= input.length;
             const revealed = showPhase || i < input.length;
             return (
               <span

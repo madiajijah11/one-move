@@ -9,7 +9,7 @@ export type GameId =
 export interface GameDefinition {
   id: GameId;
   name: string;
-  component: () => Promise<{ default: React.ComponentType<any> }>;
+  component: () => Promise<{ default: React.ComponentType }>;
   skill: string;
   enabled: boolean;
   hint: string;

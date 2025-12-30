@@ -16,7 +16,7 @@ export async function logGameCompletion(opts: {
       moves: opts.moves,
     }),
   });
-  let data: any = null;
+  let data: { row?: unknown; error?: string } | null = null;
   try {
     data = await res.json();
   } catch {

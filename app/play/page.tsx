@@ -5,9 +5,9 @@ import { getTodayGame } from "@/lib/games-registry";
 // Lazy wrapper factory to avoid reevaluating component each render
 function useLazyTodayComponent(
   gameId: string,
-  loader: () => Promise<{ default: React.ComponentType<any> }>
+  loader: () => Promise<{ default: React.ComponentType }>
 ) {
-  return useMemo(() => lazy(loader), [gameId]);
+  return useMemo(() => lazy(loader), [loader]);
 }
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
@@ -106,8 +106,8 @@ export default function PlayPage() {
             if (active) setHistory(hist);
           }
         }
-      } catch (e: any) {
-        if (active) setError(e.message);
+      } catch (e: unknown) {
+        if (active) setError(e instanceof Error ? e.message : "Unknown error");
       } finally {
         if (active) setLoading(false);
       }
@@ -118,10 +118,10 @@ export default function PlayPage() {
       // After a game logs, refresh the status so UI switches to summary
       loadStatus();
     }
-    window.addEventListener("game-logged", onLogged as any);
+    window.addEventListener("game-logged", onLogged as EventListener);
     return () => {
       active = false;
-      window.removeEventListener("game-logged", onLogged as any);
+      window.removeEventListener("game-logged", onLogged as EventListener);
     };
   }, []);
 

@@ -70,14 +70,14 @@ export function NumberMazeGame() {
     blocked: false,
     path: true,
   }));
-  const [path, setPath] = useState<Cell[]>([]);
+  const [, setPath] = useState<Cell[]>([]);
   const [completed, setCompleted] = useState(false);
   const [moves, setMoves] = useState(0);
   const startTime = useState(() => Date.now())[0];
 
   useEffect(() => {
     setPath([current]);
-  }, []);
+  }, [current]);
 
   function clickCell(cell: Cell) {
     if (completed) return;

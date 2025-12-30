@@ -32,7 +32,7 @@ interface WeeklyStats {
   hasAI: boolean;
 }
 
-function Metric({ label, value }: { label: string; value: any }) {
+function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col items-start min-w-[56px]">
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -85,8 +85,8 @@ export default function HomeDynamic() {
       } finally {
         setWeeklyLoading(false);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -109,8 +109,9 @@ export default function HomeDynamic() {
     function onLogged() {
       loadAll();
     }
-    window.addEventListener("game-logged", onLogged as any);
-    return () => window.removeEventListener("game-logged", onLogged as any);
+    window.addEventListener("game-logged", onLogged as EventListener);
+    return () =>
+      window.removeEventListener("game-logged", onLogged as EventListener);
   }, [loadAll]);
 
   return (
@@ -234,10 +235,13 @@ export default function HomeDynamic() {
                               setWeekly(json);
                             }
                           } catch {}
-                        } catch (e: any) {
+                        } catch (e: unknown) {
                           push({
                             title: "Could not save",
-                            description: e.message || "Please try again.",
+                            description:
+                              e instanceof Error
+                                ? e.message
+                                : "Please try again.",
                             variant: "destructive",
                           });
                         } finally {

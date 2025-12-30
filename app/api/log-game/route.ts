@@ -67,10 +67,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, row: data });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "unexpected error" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "unexpected error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
