@@ -26,8 +26,7 @@ export async function generateWeeklySummary(
 ): Promise<AISummaryResult | null> {
   if (!process.env.OPENROUTER_API_KEY) return null;
   try {
-    const modelId =
-      process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3.1:free"; // can override
+    const modelId = process.env.OPENROUTER_MODEL || "qwen/qwen3-4b:free"; // can override
     const { text } = await generateText({
       model: openrouter(modelId),
       maxOutputTokens: 400,
